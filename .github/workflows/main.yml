@@ -1,4 +1,4 @@
-name: Trigger auto deployment for mlopsdemo
+name: Trigger auto deployment for mlopsazure
 
 env:
   AZURE_CONTAINER_APP_NAME: mlopsazure
