@@ -1,18 +1,17 @@
 name: Trigger auto deployment for demo-container
 
 env:
-  AZURE_CONTAINER_APP_NAME: mlopsdemo
-  AZURE_GROUP_NAME: Githubactions
+  AZURE_CONTAINER_APP_NAME: demo-container
+  AZURE_GROUP_NAME: demo-container
+  AZURE_LOCATION: eastus
+  AZURE_ENV_NAME: demo-env
 
-# When this action will be executed
 on:
-  # Automatically trigger it when detected changes in repo. Remove comments to enable
-  #push:
-  #  branches: 
-  #    [ main ]
-
-  # Allow mannually trigger 
-  workflow_dispatch:      
+  # Uncomment for automatic trigger on main branch push
+  # push:
+  #   branches:
+  #     - main
+  workflow_dispatch:
 
 jobs:
   build:
@@ -55,11 +54,59 @@ jobs:
       - name: Lowercase the repo name and username
         run: echo "REPO=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
 
-      - name: Deploy to containerapp
+      - name: Create or Update Container App
         uses: azure/CLI@v1
         with:
           inlineScript: |
+            APP_NAME=${{ env.AZURE_CONTAINER_APP_NAME }}
+            RESOURCE_GROUP=${{ env.AZURE_GROUP_NAME }}
+            LOCATION=${{ env.AZURE_LOCATION }}
+            ENV_NAME=${{ env.AZURE_ENV_NAME }}
+            IMAGE="ghcr.io/${{ env.REPO }}:${{ github.sha }}"
+            REGISTRY_SERVER="ghcr.io"
+            REGISTRY_USER="${{ github.actor }}"
+            REGISTRY_PASS="${{ secrets.PAT }}"
+
             az config set extension.use_dynamic_install=yes_without_prompt
-            az containerapp registry set -n ${{ env.AZURE_CONTAINER_APP_NAME }} -g ${{ env.AZURE_GROUP_NAME }} --server ghcr.io --username  ${{ github.actor }} --password ${{ secrets.PAT }}
-            az containerapp update -n mlopsdemo -g mlopsdemo --cpu 2 --memory 4Gi
-            az containerapp update -n ${{ env.AZURE_CONTAINER_APP_NAME }} -g ${{ env.AZURE_GROUP_NAME }} --image ghcr.io/${{ env.REPO }}:${{ github.sha }}
+
+            echo "🔍 Checking if resource group exists..."
+            if ! az group show -n $RESOURCE_GROUP &>/dev/null; then
+              echo "🆕 Creating resource group..."
+              az group create -n $RESOURCE_GROUP -l $LOCATION
+            fi
+
+            echo "🔍 Checking if environment exists..."
+            if ! az containerapp env show -n $ENV_NAME -g $RESOURCE_GROUP &>/dev/null; then
+              echo "🆕 Creating environment..."
+              az containerapp env create -n $ENV_NAME -g $RESOURCE_GROUP --location $LOCATION
+            fi
+
+            echo "🔍 Checking if container app exists..."
+            if ! az containerapp show -n $APP_NAME -g $RESOURCE_GROUP &>/dev/null; then
+              echo "🆕 Creating new container app..."
+              az containerapp create \
+                -n $APP_NAME \
+                -g $RESOURCE_GROUP \
+                --environment $ENV_NAME \
+                --image $IMAGE \
+                --cpu 2 \
+                --memory 4Gi \
+                --registry-server $REGISTRY_SERVER \
+                --registry-username $REGISTRY_USER \
+                --registry-password $REGISTRY_PASS
+            else
+              echo "🔄 Updating existing container app..."
+              az containerapp registry set \
+                -n $APP_NAME \
+                -g $RESOURCE_GROUP \
+                --server $REGISTRY_SERVER \
+                --username $REGISTRY_USER \
+                --password $REGISTRY_PASS
+              
+              az containerapp update \
+                -n $APP_NAME \
+                -g $RESOURCE_GROUP \
+                --image $IMAGE \
+                --cpu 2 \
+                --memory 4Gi
+            fi
