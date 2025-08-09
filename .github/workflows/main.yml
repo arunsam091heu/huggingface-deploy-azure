@@ -7,9 +7,10 @@ env:
   AZURE_ENV_NAME: demo-env
 
 on:
-  schedule:
-    - cron: "*/1 * * * *" # Runs every 1 minute
-  workflow_dispatch:
+  # Automatically trigger it when detected changes in repo. Remove comments to enable
+  push:
+    branches: 
+      [ main ]
 
 jobs:
   build:
