@@ -1,7 +1,7 @@
 name: Trigger auto deployment for mlopsazure
 
 env:
-  AZURE_CONTAINER_APP_NAME: mlopsazure
+  AZURE_CONTAINER_APP_NAME: mlopsazurev2
   AZURE_GROUP_NAME: Githubactions
   AZURE_REGION: eastus  # Change if needed
   CONTAINER_APP_ENV_NAME: mlops-env  # Replace with your env name (create it if it doesn't exist)
