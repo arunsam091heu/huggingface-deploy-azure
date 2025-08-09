@@ -1,36 +1,41 @@
-name: Trigger auto deployment for mlopsazure
+name: Trigger auto deployment for demo-container
 
 env:
-  AZURE_CONTAINER_APP_NAME: mlopsazurev2
+  AZURE_CONTAINER_APP_NAME: mlopsdemo
   AZURE_GROUP_NAME: Githubactions
-  AZURE_REGION: eastus  # Change if needed
-  CONTAINER_APP_ENV_NAME: mlops-env  # Replace with your env name (create it if it doesn't exist)
 
+# When this action will be executed
 on:
-  workflow_dispatch:  # Manual trigger
+  # Automatically trigger it when detected changes in repo. Remove comments to enable
+  #push:
+  #  branches: 
+  #    [ main ]
+
+  # Allow mannually trigger 
+  workflow_dispatch:      
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout to the branch
         uses: actions/checkout@v2
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
 
-      - name: Log in to GitHub Container Registry
+      - name: Log in to GitHub container registry
         uses: docker/login-action@v1.10.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.PAT }}  # Make sure this PAT secret is created
+          password: ${{ github.token }}
 
-      - name: Set lowercase repo name
-        run: echo "REPO=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
+      - name: Lowercase the repo name and username
+        run: echo "REPO=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
 
-      - name: Build and push Docker image to GHCR
+      - name: Build and push container image to registry
         uses: docker/build-push-action@v2
         with:
           push: true
@@ -45,51 +50,16 @@ jobs:
       - name: Azure Login
         uses: azure/login@v1
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}  # Use service principal creds
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Set lowercase repo name
-        run: echo "REPO=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
+      - name: Lowercase the repo name and username
+        run: echo "REPO=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
 
-      - name: Deploy to Azure Container App
+      - name: Deploy to containerapp
         uses: azure/CLI@v1
         with:
           inlineScript: |
             az config set extension.use_dynamic_install=yes_without_prompt
-
-            APP_NAME=${{ env.AZURE_CONTAINER_APP_NAME }}
-            RESOURCE_GROUP=${{ env.AZURE_GROUP_NAME }}
-            LOCATION=${{ env.AZURE_REGION }}
-            ENV_NAME=${{ env.CONTAINER_APP_ENV_NAME }}
-            IMAGE=ghcr.io/${{ env.REPO }}:${{ github.sha }}
-
-            echo "🔍 Checking if Container App exists..."
-            if ! az containerapp show -n $APP_NAME -g $RESOURCE_GROUP &>/dev/null; then
-              echo "🆕 Container App does not exist. Creating..."
-
-              az containerapp create \
-                --name $APP_NAME \
-                --resource-group $RESOURCE_GROUP \
-                --location $LOCATION \
-                --environment $ENV_NAME \
-                --image $IMAGE \
-                --target-port 80 \
-                --ingress external \
-                --registry-server ghcr.io \
-                --registry-username ${{ github.actor }} \
-                --registry-password ${{ secrets.PAT }} \
-                --cpu 1.0 \
-                --memory 2.0Gi
-            else
-              echo "♻️ Updating existing Container App image..."
-
-              az containerapp registry set \
-                -n $APP_NAME -g $RESOURCE_GROUP \
-                --server ghcr.io \
-                --username ${{ github.actor }} \
-                --password ${{ secrets.PAT }}
-
-              az containerapp update \
-                -n $APP_NAME \
-                -g $RESOURCE_GROUP \
-                --image $IMAGE
-            fi
+            az containerapp registry set -n ${{ env.AZURE_CONTAINER_APP_NAME }} -g ${{ env.AZURE_GROUP_NAME }} --server ghcr.io --username  ${{ github.actor }} --password ${{ secrets.PAT }}
+            az containerapp update -n mlopsdemo -g mlopsdemo --cpu 2 --memory 4Gi
+            az containerapp update -n ${{ env.AZURE_CONTAINER_APP_NAME }} -g ${{ env.AZURE_GROUP_NAME }} --image ghcr.io/${{ env.REPO }}:${{ github.sha }}
