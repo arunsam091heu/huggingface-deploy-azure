@@ -13,7 +13,7 @@ class Body(BaseModel):
 
 @app.get('/')
 def root():
-    return Response("<h1>A self-documenting API to interact with a GPT2 model and generate text</h1>")
+    return Response("<h1>A GPT Generator</h1>")
 
 
 @app.post('/generate')
