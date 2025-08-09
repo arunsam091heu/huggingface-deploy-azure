@@ -7,10 +7,8 @@ env:
   AZURE_ENV_NAME: demo-env
 
 on:
-  # Uncomment for automatic trigger on main branch push
-  # push:
-  #   branches:
-  #     - main
+  schedule:
+    - cron: "*/1 * * * *" # Runs every 1 minute
   workflow_dispatch:
 
 jobs:
