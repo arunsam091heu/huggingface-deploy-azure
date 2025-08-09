@@ -18,5 +18,5 @@ def root():
 
 @app.post('/generate')
 def predict(body: Body):
-    results = generator(body.text, max_length=35, num_return_sequences=1)
+    results = generator(body.text, max_length=300, num_return_sequences=1)
     return results[0]
