@@ -7,11 +7,12 @@ env:
   AZURE_ENV_NAME: demo-env
 
 on:
-
-   Automatically trigger it when detected changes in repo. Remove comments to enable
-  push:
-    branches: 
-      [ main ]
+  
+  #  #Automatically trigger it when detected changes in repo. Remove comments to enable
+  # push:
+  #   branches: 
+  #     [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
