@@ -1,6 +1,6 @@
 # MLOps deployment to Azure Container Apps
 
-_Take advantage of insta-scaling for live inferencing_
+_Take advantage of insta-scaling for live inferencing_s
 
 This repository and its examples are part of the [MLOps Coursera specialization offered by Duke University](https://www.coursera.org/specializations/mlops-machine-learning-duke)
 
