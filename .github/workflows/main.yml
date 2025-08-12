@@ -8,11 +8,11 @@ env:
 
 on:
   
-  # #  Automatically trigger it when detected changes in repo. Remove comments to enable
-  #  push:
-  #    branches: 
-  #      [ main ]
- workflow_dispatch:
+  #  Automatically trigger it when detected changes in repo. Remove comments to enable
+   push:
+     branches: 
+       [ main ]
+
 
 jobs:
   build:
